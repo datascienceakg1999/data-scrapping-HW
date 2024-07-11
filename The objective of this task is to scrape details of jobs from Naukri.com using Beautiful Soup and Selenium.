@@ -1,0 +1,74 @@
+import time
+import pandas as pd
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from bs4 import BeautifulSoup
+
+driver_path = "path/to/chromedriver"  # Replace with your WebDriver path
+driver = webdriver.Chrome(executable_path=driver_path)
+
+
+url = "https://www.naukri.com/data-scientist-jobs"  # Replace with your desired job search URL
+
+driver.get(url)
+
+
+for _ in range(5):  # Adjust the range for more scrolling
+    driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
+    time.sleep(2)
+
+page_source = driver.page_source
+driver.quit()
+
+soup = BeautifulSoup(page_source, 'html.parser')
+
+job_containers = soup.find_all('article', {'class': 'jobTuple bgWhite br4 mb-8'})
+
+jobs = []
+for container in job_containers:
+    try:
+        title = container.find('a', {'class': 'title fw500 ellipsis'}).text
+    except AttributeError:
+        title = None
+
+    try:
+        company = container.find('a', {'class': 'subTitle ellipsis fleft'}).text
+    except AttributeError:
+        company = None
+
+    try:
+        location = container.find('li', {'class': 'fleft grey-text br2 placeHolderLi location'}).text
+    except AttributeError:
+        location = None
+
+    try:
+        experience = container.find('li', {'class': 'fleft grey-text br2 placeHolderLi experience'}).text
+    except AttributeError:
+        experience = None
+
+    try:
+        salary = container.find('li', {'class': 'fleft grey-text br2 placeHolderLi salary'}).text
+    except AttributeError:
+        salary = None
+
+    try:
+        description = container.find('div', {'class': 'job-description fs12 grey-text'}).text.strip()
+    except AttributeError:
+        description = None
+
+    jobs.append({
+        'title': title,
+        'company': company,
+        'location': location,
+        'experience': experience,
+        'salary': salary,
+        'description': description
+    })
+
+jobs_df = pd.DataFrame(jobs)
+
+csv_file_path = "naukri_jobs.csv"
+jobs_df.to_csv(csv_file_path, index=False)
+
+print(f"Scraped data saved to {csv_file_path}")
